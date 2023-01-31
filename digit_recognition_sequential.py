@@ -24,31 +24,22 @@ input_size = 784 # 28 * 28 input image size
 hidden_sizes = [128, 64]
 output_size = 10
 
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.model = nn.Sequential(
-            nn.Linear(input_size, hidden_sizes[0]),
-            nn.ReLU(),
-            nn.Linear(hidden_sizes[0], hidden_sizes[1]),
-            nn.ReLU()
-        )
-        self.last_layer = nn.Linear(hidden_sizes[1], output_size)
-        self.soft_max = nn.LogSoftmax(dim=1)
-
-    def forward(self, x):
-        logits = self.model(x)
-        logits = self.last_layer(logits)
-        logits = self.soft_max(logits)
-        return logits
+model = nn.Sequential(
+    nn.Linear(input_size, hidden_sizes[0]),
+    nn.ReLU(),
+    nn.Linear(hidden_sizes[0], hidden_sizes[1]),
+    nn.ReLU(),
+    nn.Linear(hidden_sizes[1], output_size),
+    nn.LogSoftmax(dim=1)
+)
 
 # define loss
 criterion = nn.CrossEntropyLoss()
 
 # adjust weights
-network = Net()
-optimizer = optim.SGD(network.parameters(), lr=0.001, momentum=0.9)
-#optimizer = optim.Adam(network.parameters(), lr=0.001)
+
+#optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 time0 = time()
 epochs = 100
 
@@ -60,10 +51,8 @@ for e in range(epochs):
 
         #Training pass
         optimizer.zero_grad()
-        
-        output = network(images)
-        # output = network.last_layer(output)
-        # output = network.soft_max(output)
+
+        output = model(images)
         loss = criterion(output, labels)
 
         #backpass
@@ -80,7 +69,7 @@ for e in range(epochs):
     print("\nTraining Time (in minutes) =",(time()-time0)/60)
 
 #save model
-torch.save(network, 'mnist1-ce-sgd-2.pt')
+torch.save(model, 'mnist1-crossentropy-adam.pt')
 
 # Test model
 with torch.no_grad():
@@ -90,7 +79,7 @@ with torch.no_grad():
         for i in range(len(labels)):
             img = images[i].view(1, 784)
             with torch.no_grad():
-                logps = network(img)
+                logps = model(img)
 
             ps = torch.exp(logps)
             probab = list(ps.numpy()[0])
