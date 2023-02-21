@@ -34,71 +34,84 @@ class Net(nn.Module):
             nn.ReLU()
         )
         self.last_layer = nn.Linear(hidden_sizes[1], output_size)
-        self.soft_max = nn.LogSoftmax(dim=1)
+        #self.soft_max = nn.LogSoftmax(dim=1)
 
     def forward(self, x):
         logits = self.model(x)
         logits = self.last_layer(logits)
-        logits = self.soft_max(logits)
         return logits
 
-# define loss
-criterion = nn.CrossEntropyLoss()
+    def predict(self, x):
+        logits = self.model(x)
+        logits = self.last_layer(logits)
+        softmax = torch.nn.Softmax(dim=1)
+        return softmax(logits)
 
-# adjust weights
-network = Net()
-optimizer = optim.SGD(network.parameters(), lr=0.001, momentum=0.9)
-#optimizer = optim.Adam(network.parameters(), lr=0.001)
-time0 = time()
-epochs = 100
 
-for e in range(epochs):
-    running_loss = 0
-    for images, labels in trainloader:
-        #flatten data into 1D vector
-        images = images.view(images.shape[0], -1)
+def train_model():
+    # define loss
+    criterion = nn.CrossEntropyLoss()
 
-        #Training pass
-        optimizer.zero_grad()
+    # adjust weights
+    network = Net()
+    optimizer = optim.SGD(network.parameters(), lr=0.001, momentum=0.9)
+    #optimizer = optim.Adam(network.parameters(), lr=0.001)
+    time0 = time()
+    epochs = 100
+
+    for e in range(epochs):
+        running_loss = 0
+        for images, labels in trainloader:
+            #flatten data into 1D vector
+            images = images.view(images.shape[0], -1)
+            
+
+            #Training pass
+            optimizer.zero_grad()
+
+            
+            output = network(images)
+            # output = network.last_layer(output)
+            # output = network.soft_max(output)
+            loss = criterion(output, labels)
+
+            #backpass
+            loss.backward()
+
+            #optimize weights
+            optimizer.step()
+
+            running_loss += loss.item()
         
-        output = network(images)
-        # output = network.last_layer(output)
-        # output = network.soft_max(output)
-        loss = criterion(output, labels)
+        else:
+            print("Epoch {} - Training loss: {}".format(e,
+            running_loss/len(trainloader)))
+        print("\nTraining Time (in minutes) =",(time()-time0)/60)
 
-        #backpass
-        loss.backward()
+    #save model
+    torch.save(network, 'mnist1-ce-sgd-3.pt')
 
-        #optimize weights
-        optimizer.step()
+    # Test model
+    with torch.no_grad():
+        n_correct = 0
+        n_samples = 0
+        for images, labels in valloader:
+            for i in range(len(labels)):
+                img = images[i].view(1, 784)
+                with torch.no_grad():
+                    logps = network.predict(img)
 
-        running_loss += loss.item()
-    
-    else:
-        print("Epoch {} - Training loss: {}".format(e,
-        running_loss/len(trainloader)))
-    print("\nTraining Time (in minutes) =",(time()-time0)/60)
+                ps = torch.exp(logps)
+                probab = list(ps.numpy()[0])
+                pred_label = probab.index(max(probab))
+                true_label = labels.numpy()[i]
+                if(true_label == pred_label):
+                    n_correct += 1
+                n_samples += 1
 
-#save model
-torch.save(network, 'mnist1-ce-sgd-2.pt')
+        print("Number Of Images Tested =", n_samples)
+        print("\nModel Accuracy =", (n_correct/n_samples))
 
-# Test model
-with torch.no_grad():
-    n_correct = 0
-    n_samples = 0
-    for images, labels in valloader:
-        for i in range(len(labels)):
-            img = images[i].view(1, 784)
-            with torch.no_grad():
-                logps = network(img)
+if __name__ == '__main__':
 
-            ps = torch.exp(logps)
-            probab = list(ps.numpy()[0])
-            pred_label = probab.index(max(probab))
-            true_label = labels.numpy()[i]
-            if(true_label == pred_label):
-                n_correct += 1
-            n_samples += 1
-
-    print("Number Of Images Tested =", n_samples)
-    print("\nModel Accuracy =", (n_correct/n_samples))
+    train_model()
