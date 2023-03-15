@@ -6,6 +6,9 @@ from time import time
 from torchvision import datasets, transforms
 from torch import nn, optim
 
+'''
+    simple digit recognition neural net trained on MNIST
+'''
 # get data
 transform = transforms.Compose([transforms.ToTensor(),
                               transforms.Normalize((0.5,), (0.5,)),
