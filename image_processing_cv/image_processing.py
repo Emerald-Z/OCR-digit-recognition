@@ -3,12 +3,20 @@ import numpy as np
 
 # resize image
 # load the example image
-image = cv2.imread("ex1.jpeg")
-crop_img = image[400:600, 250:450]
+image = cv2.imread("sample2.jpeg")
+crop_img = image[350:600, 200:450]
+cv2.imwrite('cropped.png', crop_img)
+
 # pre-process the image by resizing it, converting it to
 # graycale, blurring it, and computing an edge map
 gray = cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY)
 # Applying Gaussian blurring with a 5×5 kernel to reduce high-frequency noise
+
+thresh1 = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+
+kernel1 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
+thresh1 = cv2.morphologyEx(thresh1, cv2.MORPH_OPEN, kernel1)
+cv2.imwrite('gray.png', thresh1)
 
 blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 edged = cv2.Canny(blurred, 50, 200, 255)
@@ -115,6 +123,7 @@ for c in cnts:
 # to it
 warped = four_point_transform(gray, displayCnt.reshape(4, 2))
 output = four_point_transform(image, displayCnt.reshape(4, 2))
+cv2.imwrite('warped.png', warped)
 # separate digits -> ignore white hole between last 2 digits
 img_name = "ex2.png"
 # do binary color transform
@@ -125,7 +134,7 @@ thresh = cv2.threshold(warped, 150, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
 kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
 thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
 
-# cv2.imwrite('thresh.png', thresh)
+cv2.imwrite('thresh.png', thresh)
 # find contours in the thresholded image, then initialize the
 # digit contours lists
 
